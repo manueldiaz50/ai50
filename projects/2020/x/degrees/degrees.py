@@ -84,18 +84,6 @@ def main():
             print(f"{i + 1}: {person1} and {person2} starred in {movie}")
 
 
-def shortest_path(source, target):
-    """
-    Returns the shortest list of (movie_id, person_id) pairs
-    that connect the source to the target.
-
-    If no possible path, returns None.
-    """
-
-    # TODO
-    raise NotImplementedError
-
-
 def person_id_for_name(name):
     """
     Returns the IMDB id for a person's name,
@@ -130,10 +118,79 @@ def neighbors_for_person(person_id):
     movie_ids = people[person_id]["movies"]
     neighbors = set()
     for movie_id in movie_ids:
-        for person_id in movies[movie_id]["stars"]:
-            neighbors.add((movie_id, person_id))
+        for p_id in movies[movie_id]["stars"]:
+            if p_id != person_id:
+                neighbors.add((movie_id, p_id))
+
     return neighbors
 
+
+
+def shortest_path(source, target):
+    """
+    Returns the shortest list of (movie_id, person_id) pairs
+    that connect the source to the target.
+
+    If no possible path, returns None.
+    """
+    # Check the names
+    if(source == None or target == None):
+        return False
+
+     # Intitialize frontier and explored lists
+    Frontier = QueueFrontier()
+    Explored = StackFrontier()
+    Explored_persons = set()
+    
+    node_state = (None, None)
+    node_parent = (None, None)
+    node_action = (None, source)
+    new_node = Node(node_state, node_parent, node_action)
+    Frontier.add(new_node)
+  
+    # Explore
+    while not(Frontier.empty()):
+        # Pull the next node from the Frontier
+        explore_node = Frontier.remove()
+        this_person = explore_node.action[1]
+ 
+        if target == this_person: # Found a path that connects source with target
+            # Compute the path from the Explored stack.
+            action = explore_node.action
+            parent = explore_node.parent
+            state = explore_node.state
+            route = [action]
+            while not(Explored.empty()):
+                one_node_back = Explored.remove()
+                if(state == one_node_back.action and parent == one_node_back.state):
+                    route.extend([state])
+                    parent = one_node_back.parent
+                    state = one_node_back.state
+            
+            # Reverse and return the path
+            route.reverse()
+            
+            return(route[1:])
+        
+        elif not(Explored_persons.__contains__(this_person)):
+            # Add state to the explored set
+            Explored.add(explore_node)
+            Explored_persons.add(this_person)
+        
+            # Add the next nodes to the frontier
+            node_state = explore_node.action
+            node_parent = explore_node.state
+            next_person = explore_node.action[1]
+            neighs = list(neighbors_for_person(next_person))
+            for n in neighs:
+                node_action = n
+                new_person = n[1]
+                if not(Explored_persons.__contains__(new_person)):
+                    new_node = Node(node_state, node_parent, node_action)
+                    Frontier.add(new_node)
+    
+    # Explore all the nodes and found no connection
+    return(False)
 
 if __name__ == "__main__":
     main()
